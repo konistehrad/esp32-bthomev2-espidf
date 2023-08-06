@@ -117,6 +117,8 @@ class BTHome {
   public:
     void begin(const char* dname = "DIY-sensor", bool encryption = false, uint8_t const* const key = NULL, bool trigger_based_device = false);
     void begin(const char* dname = "DIY-sensor", bool encryption = false, const char* key = "", bool trigger_based_device = false);
+    void end();
+    
     void setDeviceName(const char* dname = "");
     void buildPacket();
     void start(uint32_t duration = 0);

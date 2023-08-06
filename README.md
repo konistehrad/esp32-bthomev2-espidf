@@ -1,32 +1,11 @@
-# _Sample project_
+# _Low-power ESP32 BTHome BLE Broadcaster_
+This project builds on the work of Christos Baltatzidis's BTHome implementation for Arduino, but removes the Arduino requirement, which makes it suitable for use in ESP-IDF. This project also includes example code for doing deep sleep, with wakeup and "pairing" mode provided by a GPIO wakeup.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## How to use
+This is my first time working with ESP-IDF in any real capacity, so please do your best to open and configure it. I want to expand the configuration settings but who knows man who knows.
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
-
-
-
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
-
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+## Credits
+[esp-nimble-cpp](https://github.com/h2zero/esp-nimble-cpp): used as the NimBLE interface.
+[BTHome](https://github.com/Chreece/BTHomeV2-ESP32-example): Christos Baltatzidis's BTHomeV2 implementation was used as the basis for the esp-idf component.
+[tweeny](https://github.com/mobius3/tweeny): The excellent C++ tweening library for the nice LED pulse
+[ESP-IDF Components library](https://github.com/UncleRus/esp-idf-lib): used for interfacing with sensors etc

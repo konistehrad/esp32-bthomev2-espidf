@@ -1,4 +1,8 @@
 build/
 sdkconfig
 sdkconfig.oldbuild
+sdkconfig.old
 main/secrets.hpp
+.DS_Store
+.vscode
+

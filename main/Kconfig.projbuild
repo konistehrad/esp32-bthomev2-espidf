@@ -1,0 +1,17 @@
+menu "BTHome"
+
+    config BTHOME_BROADCAST_TIME_MS
+        int "BTHome Broadcast time in milliseconds"
+        default 1000
+        range 1 600000
+        help
+            Configurable broadcast time in milliseconds.
+
+    config BTHOME_SLEEP_TIME_MS
+        int "BTHome Sleep time in milliseconds"
+        default 10000
+        range 0 600000
+        help
+            Configurable sleep time in milliseconds. Set to 0 to disable sleep.
+
+endmenu

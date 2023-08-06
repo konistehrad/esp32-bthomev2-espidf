@@ -1,5 +1,5 @@
-#include <sstream>
-#include <iomanip>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "NimBLEDevice.h"
 #include "BTHome.h"
@@ -8,11 +8,13 @@
 #include "esp_log.h"
 
 static const char* LOG_TAG = "BTHome";
-static BLEAdvertising *pAdvertising;
+
+void BTHome::end() {
+  BLEDevice::deinit();
+}
 
 void BTHome::begin(const char* dname, bool encryption, uint8_t const* const key, bool trigger_based_device) {
   BLEDevice::init("");
-  pAdvertising = BLEDevice::getAdvertising();
   setDeviceName(dname);
   if (encryption) {
     this->m_encryptEnable = true;
@@ -31,7 +33,6 @@ void BTHome::begin(const char* dname, bool encryption, const char* key, bool tri
   std::string str = std::string(key);
   uint8_t bind_key[BIND_KEY_LEN];
   if(encryption) {
-    ESP_LOGI(LOG_TAG, "Parsing key %s...", key);
     for (uint8_t i = 0; i < BIND_KEY_LEN; i++) {
       bind_key[i] = strtol(
         str.substr(i * 2, 2).c_str(), 
@@ -39,14 +40,6 @@ void BTHome::begin(const char* dname, bool encryption, const char* key, bool tri
         16 // hex
       );
     }
-    ESP_LOGI(
-      LOG_TAG, 
-      "0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
-      bind_key[0], bind_key[1], bind_key[2], bind_key[3], 
-      bind_key[4], bind_key[5], bind_key[6], bind_key[7], 
-      bind_key[8], bind_key[9], bind_key[10], bind_key[11], 
-      bind_key[12], bind_key[13], bind_key[14], bind_key[15]
-    );
   }
 
   begin(dname, encryption, bind_key, trigger_based_device);
@@ -290,7 +283,7 @@ void BTHome::buildPacket() {
   payloadData += serviceData;             // Finalize the packet
 
   oAdvertisementData.addData(payloadData);
-  pAdvertising->setAdvertisementData(oAdvertisementData);
+  BLEDevice::getAdvertising()->setAdvertisementData(oAdvertisementData);
 
   //fill the local name into oScanResponseData
   if (!this->dev_name.empty()) {
@@ -298,7 +291,7 @@ void BTHome::buildPacket() {
     if (dn_length > 28) dn_length = 28;//BLE_ADVERT_MAX_LEN - FLAG = 31 - 3
     oScanResponseData.setName(this->dev_name.substr(0, dn_length - 1).c_str());
   }
-  pAdvertising->setScanResponseData(oScanResponseData);
+  BLEDevice::getAdvertising()->setScanResponseData(oScanResponseData);
 
   /**  pAdvertising->setAdvertisementType(ADV_TYPE_NONCONN_IND);
        Advertising mode. Can be one of following constants:
@@ -306,19 +299,19 @@ void BTHome::buildPacket() {
      - BLE_GAP_CONN_MODE_DIR (directed-connectable; 3.C.9.3.3).
      - BLE_GAP_CONN_MODE_UND (undirected-connectable; 3.C.9.3.4).
   */
-  pAdvertising->setAdvertisementType(BLE_GAP_CONN_MODE_NON);
+  BLEDevice::getAdvertising()->setAdvertisementType(BLE_GAP_CONN_MODE_NON);
 }
 
 void BTHome::stop() {
-  pAdvertising->stop();
+  BLEDevice::getAdvertising()->stop();
 }
 
 void BTHome::start(uint32_t duration) {
-  pAdvertising->start(duration);
+  BLEDevice::getAdvertising()->start(duration);
 }
 
 bool BTHome::isAdvertising() {
-  return pAdvertising->isAdvertising();
+  return BLEDevice::getAdvertising()->isAdvertising();
 }
 
 void BTHome::sendPacket(uint32_t delay_ms)
