@@ -1,5 +1,11 @@
 menu "BTHome"
 
+    config BTHOME_DO_THRESHOLD_TEST
+        bool "Should BTHome perform temp and humidity threshold tests before broadcasting"
+        default false
+        help
+            If this is true, temperature and humidity will be tested against a threshold value before broadcast. If false, broadcast will always occur.
+
     config BTHOME_BROADCAST_TIME_MS
         int "BTHome Broadcast time in milliseconds"
         default 1000
@@ -10,7 +16,7 @@ menu "BTHome"
     config BTHOME_SLEEP_TIME_MS
         int "BTHome Sleep time in milliseconds"
         default 10000
-        range 0 600000
+        range 0 1000000
         help
             Configurable sleep time in milliseconds. Set to 0 to disable sleep.
 

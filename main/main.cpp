@@ -28,6 +28,11 @@ static constexpr TickType_t BROADCAST_TIME_TICKS = BROADCAST_TIME_MS / portTICK_
 static constexpr TickType_t SLEEP_TIME_MS = (TickType_t)(CONFIG_BTHOME_SLEEP_TIME_MS);
 static constexpr TickType_t SLEEP_TIME_US = (TickType_t)(CONFIG_BTHOME_SLEEP_TIME_MS * 1000);
 static constexpr TickType_t SLEEP_TIME_TICKS = SLEEP_TIME_MS / portTICK_PERIOD_MS;
+#ifdef CONFIG_BTHOME_DO_THRESHOLD_TEST
+static constexpr bool DO_THRESHOLD_TEST = true;
+#else
+static constexpr bool DO_THRESHOLD_TEST = false;
+#endif
 
 static void led_set_color(led_strip_t& strip, rgb_t color) {
     ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, color));
@@ -63,7 +68,7 @@ static inline aht_t aht_initialize() {
     bool calibrated;
     ESP_ERROR_CHECK(aht_get_status(&dev, NULL, &calibrated));
     if (calibrated) {
-        ESP_LOGI(LOG_TAG, "AHT20 Sensor calibrated; nice!");
+        ESP_LOGD(LOG_TAG, "AHT20 Sensor calibrated; nice!");
     } else {
         ESP_LOGW(LOG_TAG, "AHT20 Sensor not calibrated, better figure that out...");
     }
@@ -87,7 +92,7 @@ RTC_DATA_ATTR float lastSentHumidity = -1;
 
 volatile bool fade_task_running = false;
 static void fade_task_entry(void *pvParams) {
-    ESP_LOGI(LOG_TAG, "Hello from fade task!"); 
+    ESP_LOGV(LOG_TAG, "Hello from fade task!"); 
     fade_task_running = true;
     led_strip_t led = led_initialize();
     led_set_color(led, rgb_from_values(0,255,0));
@@ -151,31 +156,38 @@ extern "C" void app_main(void)
     // led_strip_t led_device = led_initialize();
     // led_set_color(led_device, rgb_from_values(255, 255, 255));
 
-    bthome.begin(DEVICE_NAME, true, BIND_KEY);
-    ESP_LOGI(LOG_TAG, "BTHome initialization complete; looping...");
-
     for(;;)
     {
+        bool btInitialized = false;
         float temperature, humidity;
         esp_err_t aht_err = aht_get_and_print(&aht_device, &temperature, &humidity);
         if(aht_err == ESP_OK) {
             if(
-                fade_task_handle != NULL || // always send if we're in broadcast pairing mode
-                fabs(temperature - lastSentTemp) > TEMPERATURE_THRESHOLD ||
-                fabs(humidity - lastSentHumidity) > HUMIDITY_THRESHOLD
+                !DO_THRESHOLD_TEST || (
+                    fade_task_handle != NULL || // always send if we're in broadcast pairing mode
+                    fabs(temperature - lastSentTemp) > TEMPERATURE_THRESHOLD ||
+                    fabs(humidity - lastSentHumidity) > HUMIDITY_THRESHOLD
+                )
             ) {
+                if(!btInitialized) {
+                    ESP_LOGI(LOG_TAG, "Beginning BTHome initialization...");
+                    bthome.begin(DEVICE_NAME, true, BIND_KEY);
+                    btInitialized = true;
+                    ESP_LOGI(LOG_TAG, "BTHome initialization complete!");
+                }
+
                 // led_set_color(led_device, rgb_from_values(0, 255, 0));
                 lastSentTemp = temperature;
                 lastSentHumidity = humidity;
                 
                 bthome.addMeasurement(ID_TEMPERATURE_PRECISE, temperature);
                 bthome.addMeasurement(ID_HUMIDITY_PRECISE, humidity);
-                ESP_LOGI(LOG_TAG, "Broadcasting...");
+                ESP_LOGV(LOG_TAG, "Broadcasting...");
                 bthome.sendPacket(BROADCAST_TIME_MS);
-                ESP_LOGI(LOG_TAG, "Broadcast complete!");
+                ESP_LOGV(LOG_TAG, "Broadcast complete!");
                 // led_set_color(led_device, rgb_from_values(0,0,0));
             } else {
-                ESP_LOGI(LOG_TAG, "Not enough difference, bypassing broadcast");
+                ESP_LOGD(LOG_TAG, "Not enough difference, bypassing broadcast");
             }
         } else {
             ESP_LOGE(LOG_TAG, "Bypassing sensor update on failed read.");
@@ -189,15 +201,13 @@ extern "C" void app_main(void)
             }
         } else {
             if(SLEEP_TIME_MS > 0) {
-                ESP_LOGI(LOG_TAG, "Heading for bed!");
+                ESP_LOGI(LOG_TAG, "Heading for bed; sleep time is %ld ms", SLEEP_TIME_MS);
                 // led_set_color(led_device, rgb_from_values(0,0,0));
 
-                /*
-                bthome.stop();
-                vTaskDelay(SLEEP_TIME_PERIOD);
-                */
-            
-                bthome.end();
+                if(btInitialized) {
+                    bthome.stop();
+                    bthome.end();
+                }
                 auto res = esp_deep_sleep_enable_gpio_wakeup(1<<3,ESP_GPIO_WAKEUP_GPIO_LOW);
                 if(res != ESP_OK) 
                 {
@@ -205,9 +215,7 @@ extern "C" void app_main(void)
                 }
                 esp_sleep_enable_timer_wakeup(SLEEP_TIME_US);
                 esp_deep_sleep_start();
-                
             }
         }
-
     }
 }
